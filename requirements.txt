@@ -1,0 +1,23 @@
+# Build dependencies
+setuptools
+
+# Runtime dependencies
+fastapi
+uvicorn
+SQLAlchemy
+databases[postgresql]
+python-dotenv
+
+# Test dependencies
+pytest
+httpx
+pytest-describe
+
+# Code coverage dependencies
+coverage
+pytest-cov
+
+# Code quality dependencies
+flake8
+black
+isort
