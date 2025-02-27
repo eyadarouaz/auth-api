@@ -1,4 +1,3 @@
-# filepath: /workspaces/auth-api/app/logging_config.py
 from logging.config import dictConfig
 
 logging_config = {
@@ -18,6 +17,13 @@ logging_config = {
     "root": {
         "level": "INFO",
         "handlers": ["console"],
+    },
+    "loggers": {
+        "sqlalchemy.engine": {
+            "level": "WARNING",
+            "handlers": ["console"],
+            "propagate": False,
+        },
     },
 }
 
