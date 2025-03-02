@@ -2,15 +2,6 @@
 name: Technical Debt Task
 about: Template for tracking technical debt tasks.
 title: "[Tech Debt] - <Title>"
-labels: [technical-debt]
----
-
-## **Title**
-_Provide a concise title for the technical debt task._
-
-**Example**:  
-*Refactor Authentication Service to Improve Scalability*
-
 ---
 
 ## **Description**
