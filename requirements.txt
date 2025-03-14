@@ -7,9 +7,12 @@ uvicorn
 SQLAlchemy
 databases[postgresql]
 python-dotenv
+psycopg2-binary
+passlib[bcrypt]
 
 # Test dependencies
 pytest
+factory_boy
 httpx
 pytest-describe
 
