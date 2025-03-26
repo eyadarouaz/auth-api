@@ -12,7 +12,7 @@ from tests.factories import UserFactory
 BASE_URL = "/users"
 
 DATABASE_URI = os.getenv(
-    "DATABASE_URI",
+    "TEST_DATABASE_URI",
 )
 
 engine = create_engine(DATABASE_URI, echo=True)
