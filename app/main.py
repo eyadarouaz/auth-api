@@ -4,9 +4,9 @@ from typing import List
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from passlib.context import CryptContext
-from sqlmodel import Session, select
+from sqlmodel import Session, SQLModel, select
 
-from app.database import get_db
+from app.database import engine, get_db
 from app.logging_config import setup_logging
 from app.models import User, UserCreate
 
@@ -16,6 +16,13 @@ setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+
+@app.on_event("startup")
+def on_startup():
+    # Create all tables in the database (if they do not exist)
+    SQLModel.metadata.create_all(bind=engine)
+    logger.info("Tables created (if not already existing)")
 
 
 @app.get("/")
@@ -28,6 +35,8 @@ def read_root():
 def read_users(db: Session = Depends(get_db)):
     statement = select(User)
     users = db.exec(statement).all()
+    if not users:
+        raise HTTPException(status_code=404, detail={"message": "No users found"})
     return users
 
 
@@ -45,8 +54,8 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == user.username).first()
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already registered"
+            status_code=400,
+            detail="Username already registered",
         )
 
     hashed_password = pwd_context.hash(user.password)
