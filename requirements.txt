@@ -5,6 +5,7 @@ setuptools
 fastapi
 uvicorn
 SQLAlchemy
+sqlmodel
 databases[postgresql]
 python-dotenv
 psycopg2-binary
@@ -15,6 +16,7 @@ pytest
 factory_boy
 httpx
 pytest-describe
+pydantic[email]
 
 # Code coverage dependencies
 coverage
