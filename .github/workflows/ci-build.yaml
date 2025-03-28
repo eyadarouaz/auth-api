@@ -13,9 +13,9 @@ jobs:
 
     services:
       postgres:
-        image: postgres:alpine
+        image: postgres:latest
         ports: 
-          - 5433:5432
+          - 5432:5432
         env: 
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: testdb
