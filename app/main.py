@@ -20,7 +20,6 @@ app = FastAPI()
 
 @app.on_event("startup")
 def on_startup():
-    # Create all tables in the database (if they do not exist)
     SQLModel.metadata.create_all(bind=engine)
     logger.info("Tables created (if not already existing)")
 
