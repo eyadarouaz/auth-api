@@ -5,13 +5,18 @@ setuptools
 fastapi
 uvicorn
 SQLAlchemy
+sqlmodel
 databases[postgresql]
 python-dotenv
+psycopg2-binary
+passlib[bcrypt]
 
 # Test dependencies
 pytest
+factory_boy
 httpx
 pytest-describe
+pydantic[email]
 
 # Code coverage dependencies
 coverage
