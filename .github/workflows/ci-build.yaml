@@ -45,4 +45,4 @@ jobs:
       - name: Run unit tests with Pytest
         run: pytest
         env: 
-          DATABASE_URI: "postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/testdb"
+          TEST_DATABASE_URI: "postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/testdb"
