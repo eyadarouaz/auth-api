@@ -13,7 +13,7 @@ BASE_URL = "/users"
 
 DATABASE_URI = os.getenv(
     "TEST_DATABASE_URI",
-    "postgresql://postgres:{os.getenv('POSTGRES_PASSWORD')}@postgres:5432/postgres"
+    f"postgresql://postgres:{os.getenv('POSTGRES_PASSWORD')}@postgres:5432/postgres"
 )
 
 engine = create_engine(DATABASE_URI, echo=True)
