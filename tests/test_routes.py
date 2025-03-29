@@ -10,7 +10,7 @@ from app.models import User
 from tests.factories import UserFactory
 
 BASE_URL = "/users"
-
+load_dotenv()
 DATABASE_URI = os.getenv(
     "TEST_DATABASE_URI",
     f"postgresql://postgres:{os.getenv('POSTGRES_PASSWORD')}@postgres:5432/postgres"
