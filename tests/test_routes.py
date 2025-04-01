@@ -10,10 +10,9 @@ from app.models import User
 from tests.factories import UserFactory
 
 BASE_URL = "/users"
-
 DATABASE_URI = os.getenv(
-    "TEST_DATABASE_URI",
-    "postgresql://postgres:pgs3cr3t@postgres:5432/postgres"
+    "DATABASE_URI",
+    f"postgresql://postgres:{os.getenv('POSTGRES_PASSWORD')}@postgres:5432/postgres"
 )
 
 engine = create_engine(DATABASE_URI, echo=True)
