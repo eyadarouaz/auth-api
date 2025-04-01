@@ -1,6 +1,6 @@
 # User Authentication API
-[![CI Build](https://github.com/eyadarouaz/auth-api/actions/workflows/ci-build.yaml/badge.svg)](https://github.com/eyadarouaz/auth-api/actions/workflows/ci-build.yaml)
-API for authentication microservice
+[![CI Build](https://github.com/eyadarouaz/auth-api/actions/workflows/ci-build.yaml/badge.svg)](https://github.com/eyadarouaz/auth-api/actions/workflows/ci-build.yaml)  
+API for authentication microservice  
 ## Commands
 
 ### Setting Up the Environment
