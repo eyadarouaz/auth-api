@@ -12,7 +12,7 @@ from tests.factories import UserFactory
 BASE_URL = "/users"
 DATABASE_URI = os.getenv(
     "DATABASE_URI",
-    f"postgresql://postgres:{os.getenv('POSTGRES_PASSWORD')}@postgres:5432/postgres"
+    f"postgresql://postgres:{os.getenv('POSTGRES_PASSWORD')}@postgres:5432/postgres",
 )
 
 engine = create_engine(DATABASE_URI, echo=True)
@@ -82,6 +82,7 @@ def _create_users(db_session, count):
                 "username": user.username,
                 "email": user.email,
                 "full_name": user.full_name,
+                "role": user.role,
                 "password": "defaultpassword",
             },
         )
