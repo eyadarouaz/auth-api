@@ -109,6 +109,17 @@ def test_read_root():
     assert response.json() == {"message": "Welcome to the User Authentication API"}
 
 
+def test_read_all_users(db_session, setup_and_teardown):
+    """ It should Read all users """
+    users = _create_users(setup_db, 5)
+    response = client.get(
+        BASE_URL
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert len(data) == 5
+
+
 def test_read_a_user(db_session, setup_and_teardown):
     """It should Read a single user"""
     user = _create_users(setup_db, 1)[0]
@@ -119,3 +130,128 @@ def test_read_a_user(db_session, setup_and_teardown):
     data = response.json()
     assert data["username"] == user.username
     assert data["email"] == user.email
+
+
+def test_user_not_found(db_session, setup_and_teardown):
+    """It should NOT Read a non existant user"""
+    response = client.get(
+        f"{BASE_URL}/0"
+    )
+    assert response.status_code == 404
+        
+
+def test_register_user(db_session, setup_and_teardown):
+    """ It should Create a user """
+    user = UserFactory()
+    response = client.post(
+        BASE_URL, 
+        json={
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "password": "defaultpassword",
+        },
+    )
+    assert response.status_code == 201
+
+def test_register_duplicate_user(db_session, setup_and_teardown):
+    """It should NOT Create a user with duplicate username"""
+    user = UserFactory()
+    client.post(
+        BASE_URL,
+        json={
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "password": "defaultpassword",
+        },
+    )
+    response = client.post(
+        BASE_URL,
+        json={
+            "username": user.username,
+            "email": "different@example.com",
+            "full_name": "Different Name",
+            "role": "admin",
+            "password": "anotherpassword",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Username already registered"
+
+
+def test_login_user(db_session, setup_and_teardown):
+    """It should log in a user"""
+    user = UserFactory()
+    client.post(
+        BASE_URL,
+        json={
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "password": "defaultpassword",
+        },
+    )
+    response = client.post(
+        "/login",
+        json={
+            "username": user.username,
+            "email": user.email,
+            "password": "defaultpassword",
+        },
+    )
+    assert response.status_code == 200
+    assert "access_token" in response.json()
+    assert "token_type" in response.json()
+
+
+def test_login_user_incorrect_password(db_session, setup_and_teardown):
+    """It should not log in a user with incorrect password"""
+    user = UserFactory()
+    client.post(
+        BASE_URL,
+        json={
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "password": "defaultpassword",
+        },
+    )
+    response = client.post(
+        "/login",
+        json={
+            "username": user.username,
+            "email": user.email,
+            "password": "wrongpassword",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Incorrect username or password"
+
+def test_login_user_incorrect_username(db_session, setup_and_teardown):
+    """It should not log in a user with incorrect username"""
+    user = UserFactory()
+    client.post(
+        BASE_URL,
+        json={
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "password": "defaultpassword",
+        },
+    )
+    response = client.post(
+        "/login",
+        json={
+            "username": "wronguser",
+            "email": "wrong@email.com",
+            "password": "defaultpassword",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Incorrect username or password"
