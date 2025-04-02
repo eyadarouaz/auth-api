@@ -9,6 +9,7 @@ from sqlmodel import Session, SQLModel, select
 from app.database import engine, get_db
 from app.logging_config import setup_logging
 from app.models import User, UserCreate
+from app.utils import hash_password, verify_password, create_access_token
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -69,3 +70,14 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     return JSONResponse(content=user.dict(), status_code=201)
+
+@app.post("/login")
+def login(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.username == user.username).first()
+    if not db_user or not verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect username or password")
+
+    access_token = create_access_token(data={"sub": db_user.username, "id": db_user.id})
+
+    return {"access_token": access_token, "token_type": "bearer"}
+
