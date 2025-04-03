@@ -24,16 +24,22 @@ app = FastAPI()
 def get_current_user(
     token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
 ) -> User:
-    user_data = verify_token(token)
+    try:
+        user_data = verify_token(token)
 
-    if user_data is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        if user_data is None:
+            raise HTTPException(status_code=401, detail="Invalid token")
 
-    user = db.query(User).filter(User.id == user_data["id"]).first()
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        user = db.query(User).filter(User.id == user_data["id"]).first()
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
 
-    return user
+        return user
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred",
+        )
 
 
 @app.on_event("startup")
@@ -49,7 +55,9 @@ def read_root():
 
 
 @app.get("/users", response_model=List[User])
-def read_users(db: Session = Depends(get_db)):
+def read_users(
+    db: Session = Depends(get_db), current_user: User = Depends(get_current_user)
+):
     statement = select(User)
     users = db.exec(statement).all()
     if not users:
@@ -58,7 +66,11 @@ def read_users(db: Session = Depends(get_db)):
 
 
 @app.get("/users/{user_id}", response_model=User)
-def read_user(user_id: int, db: Session = Depends(get_db)):
+def read_user(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     statement = select(User).where(User.id == user_id)
     user = db.exec(statement).first()
     if user is None:
