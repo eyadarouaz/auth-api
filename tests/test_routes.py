@@ -142,18 +142,26 @@ def test_read_root():
 def test_read_all_users(db_session, setup_and_teardown):
     """It should Read all users"""
     _create_users(setup_db, 5)
-    response = client.get(BASE_URL)
+
+    token = _login_user(db_session)[1]  # This creates another user
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.get(BASE_URL, headers=headers)
     assert response.status_code == 200
     data = response.json()
-    assert len(data) == 5
+    assert len(data) == 6
 
 
 def test_read_a_user(db_session, setup_and_teardown):
     """It should Read a single user"""
     user = _create_users(setup_db, 1)[0]
-    response = client.get(
-        f"{BASE_URL}/{user.id}",
-    )
+
+    token = _login_user(db_session)[1]
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.get(f"{BASE_URL}/{user.id}", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["username"] == user.username
@@ -162,7 +170,11 @@ def test_read_a_user(db_session, setup_and_teardown):
 
 def test_user_not_found(db_session, setup_and_teardown):
     """It should NOT Read a non existant user"""
-    response = client.get(f"{BASE_URL}/0")
+    token = _login_user(db_session)[1]
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.get(f"{BASE_URL}/0", headers=headers)
     assert response.status_code == 404
 
 
@@ -296,3 +308,20 @@ def test_read_current_user(db_session, setup_and_teardown):
     user_data = response.json()
     assert "id" in user_data
     assert user_data["username"] == user.username
+
+
+def test_access_protected_route_without_token(db_session, setup_and_teardown):
+    """Test accessing a protected route without a token"""
+
+    response = client.get(BASE_URL)
+    assert response.status_code == 401, "Access without token should be denied"
+    assert response.json()["detail"] == "Not authenticated"
+
+
+def test_access_protected_route_with_invalid_token(db_session, setup_and_teardown):
+    """Test accessing a protected route with an invalid token"""
+
+    headers = {"Authorization": "Bearer invalid_token"}
+    response = client.get(BASE_URL, headers=headers)
+
+    assert response.status_code == 500
