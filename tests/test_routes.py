@@ -110,11 +110,9 @@ def test_read_root():
 
 
 def test_read_all_users(db_session, setup_and_teardown):
-    """ It should Read all users """
-    users = _create_users(setup_db, 5)
-    response = client.get(
-        BASE_URL
-    )
+    """It should Read all users"""
+    _create_users(setup_db, 5)
+    response = client.get(BASE_URL)
     assert response.status_code == 200
     data = response.json()
     assert len(data) == 5
@@ -134,17 +132,15 @@ def test_read_a_user(db_session, setup_and_teardown):
 
 def test_user_not_found(db_session, setup_and_teardown):
     """It should NOT Read a non existant user"""
-    response = client.get(
-        f"{BASE_URL}/0"
-    )
+    response = client.get(f"{BASE_URL}/0")
     assert response.status_code == 404
-        
+
 
 def test_register_user(db_session, setup_and_teardown):
-    """ It should Create a user """
+    """It should Create a user"""
     user = UserFactory()
     response = client.post(
-        BASE_URL, 
+        BASE_URL,
         json={
             "username": user.username,
             "email": user.email,
@@ -154,6 +150,7 @@ def test_register_user(db_session, setup_and_teardown):
         },
     )
     assert response.status_code == 201
+
 
 def test_register_duplicate_user(db_session, setup_and_teardown):
     """It should NOT Create a user with duplicate username"""
@@ -231,6 +228,7 @@ def test_login_user_incorrect_password(db_session, setup_and_teardown):
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "Incorrect username or password"
+
 
 def test_login_user_incorrect_username(db_session, setup_and_teardown):
     """It should not log in a user with incorrect username"""
