@@ -97,6 +97,36 @@ def _create_users(db_session, count):
     return users
 
 
+def _login_user(db_session):
+    user = UserFactory()
+
+    response = client.post(
+        BASE_URL,
+        json={
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "password": "defaultpassword",
+        },
+    )
+    assert response.status_code == 201
+
+    login_data = {
+        "username": user.username,
+        "email": user.email,
+        "password": "defaultpassword",
+    }
+
+    response = client.post("/login", json=login_data)
+
+    assert response.status_code == 200, "Login failed"
+    token = response.json().get("access_token")
+    assert token, "No access token received"
+
+    return user, token
+
+
 ######################################################################
 #  A U T H   T E S T   C A S E S
 ######################################################################
@@ -253,3 +283,16 @@ def test_login_user_incorrect_username(db_session, setup_and_teardown):
     )
     assert response.status_code == 400
     assert response.json()["detail"] == "Incorrect username or password"
+
+
+def test_read_current_user(db_session, setup_and_teardown):
+    """It should not log in a user with incorrect username"""
+    user, token = _login_user(db_session)
+
+    headers = {"Authorization": f"Bearer {token}"}
+    response = client.get("/me", headers=headers)
+    assert response.status_code == 200
+
+    user_data = response.json()
+    assert "id" in user_data
+    assert user_data["username"] == user.username
