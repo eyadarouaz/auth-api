@@ -9,7 +9,7 @@ from sqlmodel import Session, SQLModel, select
 from app.database import engine, get_db
 from app.logging_config import setup_logging
 from app.models import User, UserCreate
-from app.utils import hash_password, verify_password, create_access_token
+from app.utils import create_access_token, hash_password, verify_password
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -58,7 +58,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
             detail="Username already registered",
         )
 
-    hashed_password = pwd_context.hash(user.password)
+    hashed_password = hash_password(user.password)
     user = User(
         username=user.username,
         email=user.email,
@@ -71,6 +71,7 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(user)
     return JSONResponse(content=user.dict(), status_code=201)
 
+
 @app.post("/login")
 def login(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
@@ -80,4 +81,3 @@ def login(user: UserCreate, db: Session = Depends(get_db)):
     access_token = create_access_token(data={"sub": db_user.username, "id": db_user.id})
 
     return {"access_token": access_token, "token_type": "bearer"}
-
