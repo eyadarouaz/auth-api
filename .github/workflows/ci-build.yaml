@@ -17,6 +17,8 @@ jobs:
         ports: 
           - 5432:5432
         env: 
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          ALGORITHM: ${{ secrets.ALGORITHM }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB: testdb
         options: >-
