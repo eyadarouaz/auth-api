@@ -10,6 +10,7 @@ databases[postgresql]
 python-dotenv
 psycopg2-binary
 passlib[bcrypt]
+pyjwt
 
 # Test dependencies
 pytest
