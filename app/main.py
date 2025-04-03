@@ -3,20 +3,37 @@ from typing import List
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from sqlmodel import Session, SQLModel, select
 
 from app.database import engine, get_db
 from app.logging_config import setup_logging
 from app.models import User, UserCreate
-from app.utils import create_access_token, hash_password, verify_password
+from app.utils import create_access_token, hash_password, verify_password, verify_token
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI()
+
+
+def get_current_user(
+    token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
+) -> User:
+    user_data = verify_token(token)
+
+    if user_data is None:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+    user = db.query(User).filter(User.id == user_data["id"]).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return user
 
 
 @app.on_event("startup")
@@ -81,3 +98,8 @@ def login(user: UserCreate, db: Session = Depends(get_db)):
     access_token = create_access_token(data={"sub": db_user.username, "id": db_user.id})
 
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/me", response_model=User)
+def read_current_user(current_user: User = Depends(get_current_user)):
+    return current_user
