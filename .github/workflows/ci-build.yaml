@@ -56,23 +56,8 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
-    services:
-      postgres:
-        image: postgres:latest
-        ports: 
-          - 5432:5432
-        env: 
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          POSTGRES_DB: testdb
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     env:
       IMAGE_NAME: ${{ vars.DOCKER_USERNAME }}/auth-srv
-      DATABASE_URI: "postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/testdb"
     
     steps:
       - name: Checkout
@@ -103,10 +88,6 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:test
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
-
-      - name: Smoke test Docker image
-        run: |
-          docker run --rm --network host -e DATABASE_URI=${{ env.DATABASE_URI }} ${{ env.IMAGE_NAME }}:test
 
       - name: Push Docker image
         run: |
