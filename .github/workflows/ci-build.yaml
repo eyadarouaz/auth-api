@@ -87,7 +87,7 @@ jobs:
           load: true
           tags: |
             ${{ env.IMAGE_NAME }}:test
-            docker push ${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
       - name: Push Docker image
