@@ -56,6 +56,20 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
+    services:
+      postgres:
+        image: postgres:latest
+        ports: 
+          - 5432:5432
+        env: 
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     env:
       IMAGE_NAME: ${{ vars.DOCKER_USERNAME }}/auth-srv
       DATABASE_URI: "postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/testdb"
