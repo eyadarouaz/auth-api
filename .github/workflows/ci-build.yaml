@@ -106,7 +106,7 @@ jobs:
 
       - name: Smoke test Docker image
         run: |
-          docker run --rm ${{ env.IMAGE_NAME }}:test
+          docker run --rm -e DATABASE_URI=${{ env.DATABASE_URI }} ${{ env.IMAGE_NAME }}:test
 
       - name: Push Docker image
         run: |
