@@ -72,7 +72,7 @@ jobs:
 
     env:
       IMAGE_NAME: ${{ vars.DOCKER_USERNAME }}/auth-srv
-      DATABASE_URI: "postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@postgres:5432/testdb"
+      DATABASE_URI: "postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@host.docker.internal:5432/testdb"
     
     steps:
       - name: Checkout
