@@ -77,11 +77,13 @@ def _create_users(db_session, count):
     for _ in range(count):
         user = UserFactory()
         response = client.post(
-            BASE_URL,
+            "/register",
             json={
                 "username": user.username,
                 "email": user.email,
                 "full_name": user.full_name,
+                "validation_code": user.validation_code,
+                "status": user.status,
                 "role": user.role,
                 "password": "defaultpassword",
             },
@@ -92,7 +94,7 @@ def _create_users(db_session, count):
         assert response.status_code == 201, "Could not create test User"
 
         new_user = response.json()
-        user.id = new_user["id"]
+        user.username = new_user["username"]
         users.append(user)
     return users
 
@@ -101,11 +103,13 @@ def _login_user(db_session):
     user = UserFactory()
 
     response = client.post(
-        BASE_URL,
+        "/register",
         json={
             "username": user.username,
             "email": user.email,
             "full_name": user.full_name,
+            "validation_code": user.validation_code,
+            "status": "active",
             "role": user.role,
             "password": "defaultpassword",
         },
@@ -161,7 +165,7 @@ def test_read_a_user(db_session, setup_and_teardown):
 
     headers = {"Authorization": f"Bearer {token}"}
 
-    response = client.get(f"{BASE_URL}/{user.id}", headers=headers)
+    response = client.get(f"{BASE_URL}/{user.username}", headers=headers)
     assert response.status_code == 200
     data = response.json()
     assert data["username"] == user.username
@@ -182,11 +186,13 @@ def test_register_user(db_session, setup_and_teardown):
     """It should Create a user"""
     user = UserFactory()
     response = client.post(
-        BASE_URL,
+        "/register",
         json={
             "username": user.username,
             "email": user.email,
             "full_name": user.full_name,
+            "validation_code": user.validation_code,
+            "status": user.status,
             "role": user.role,
             "password": "defaultpassword",
         },
@@ -198,21 +204,25 @@ def test_register_duplicate_user(db_session, setup_and_teardown):
     """It should NOT Create a user with duplicate username"""
     user = UserFactory()
     client.post(
-        BASE_URL,
+        "/register",
         json={
             "username": user.username,
             "email": user.email,
             "full_name": user.full_name,
+            "validation_code": user.validation_code,
+            "status": user.status,
             "role": user.role,
             "password": "defaultpassword",
         },
     )
     response = client.post(
-        BASE_URL,
+        "/register",
         json={
             "username": user.username,
             "email": "different@example.com",
             "full_name": "Different Name",
+            "validation_code": "H5231F",
+            "status": "active",
             "role": "admin",
             "password": "anotherpassword",
         },
@@ -225,11 +235,13 @@ def test_login_user(db_session, setup_and_teardown):
     """It should log in a user"""
     user = UserFactory()
     client.post(
-        BASE_URL,
+        "/register",
         json={
             "username": user.username,
             "email": user.email,
             "full_name": user.full_name,
+            "validation_code": user.validation_code,
+            "status": "active",
             "role": user.role,
             "password": "defaultpassword",
         },
@@ -251,11 +263,13 @@ def test_login_user_incorrect_password(db_session, setup_and_teardown):
     """It should not log in a user with incorrect password"""
     user = UserFactory()
     client.post(
-        BASE_URL,
+        "/register",
         json={
             "username": user.username,
             "email": user.email,
             "full_name": user.full_name,
+            "validation_code": user.validation_code,
+            "status": "active",
             "role": user.role,
             "password": "defaultpassword",
         },
@@ -276,11 +290,13 @@ def test_login_user_incorrect_username(db_session, setup_and_teardown):
     """It should not log in a user with incorrect username"""
     user = UserFactory()
     client.post(
-        BASE_URL,
+        "/register",
         json={
             "username": user.username,
             "email": user.email,
             "full_name": user.full_name,
+            "validation_code": user.validation_code,
+            "status": "active",
             "role": user.role,
             "password": "defaultpassword",
         },
@@ -297,9 +313,36 @@ def test_login_user_incorrect_username(db_session, setup_and_teardown):
     assert response.json()["detail"] == "Incorrect username or password"
 
 
+def test_login_user_pending_account(db_session, setup_and_teardown):
+    """It should not log in a user with an inactive account"""
+    user = UserFactory()
+    client.post(
+        "/register",
+        json={
+            "username": user.username,
+            "email": user.email,
+            "full_name": user.full_name,
+            "validation_code": user.validation_code,
+            "status": "pending",
+            "role": user.role,
+            "password": "defaultpassword",
+        },
+    )
+    response = client.post(
+        "/login",
+        json={
+            "username": user.username,
+            "email": user.email,
+            "password": "defaultpassword",
+        },
+    )
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Incorrect username or password"
+
+
 def test_read_current_user(db_session, setup_and_teardown):
     """It should not log in a user with incorrect username"""
-    user, token = _login_user(db_session)
+    user, token = _login_user(db_session) 
 
     headers = {"Authorization": f"Bearer {token}"}
     response = client.get("/me", headers=headers)

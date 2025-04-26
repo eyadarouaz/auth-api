@@ -1,7 +1,7 @@
 import logging
 from typing import List
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, BackgroundTasks
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
@@ -11,6 +11,13 @@ from app.database import engine, get_db
 from app.logging_config import setup_logging
 from app.models import User, UserCreate
 from app.utils import create_access_token, hash_password, verify_password, verify_token
+from app.config import settings
+
+from azure.servicebus.aio import ServiceBusClient
+from azure.servicebus import ServiceBusMessage
+
+import secrets
+import string
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -41,6 +48,24 @@ def get_current_user(
             detail="An unexpected error occurred",
         )
 
+def generate_validation_code(length: int = 8) -> str:
+    characters = string.ascii_uppercase + string.digits
+    return ''.join(secrets.choice(characters) for _ in range(length))
+
+async def send_validation_code_event(email: str, code: str, user_id: int):
+    payload = {
+        "eventType": "SEND_VALIDATION_CODE",
+        "email": email,
+        "code": code,
+        "userId": str(user_id),
+    }
+
+    async with ServiceBusClient.from_connection_string(settings.CONNECTION_STRING) as client:
+        sender = client.get_queue_sender(queue_name=settings.QUEUE_NAME)
+        async with sender:
+            message = ServiceBusMessage(str(payload))
+            await sender.send_messages(message)
+            logger.info(f"Sent validation code event for {email}")
 
 @app.on_event("startup")
 def on_startup():
@@ -65,21 +90,21 @@ def read_users(
     return users
 
 
-@app.get("/users/{user_id}", response_model=User)
+@app.get("/users/{user_username}", response_model=User)
 def read_user(
-    user_id: int,
+    user_username: str,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    statement = select(User).where(User.id == user_id)
+    statement = select(User).where(User.username == user_username)
     user = db.exec(statement).first()
     if user is None:
         raise HTTPException(status_code=404, detail={"message": "User not found"})
     return user
 
 
-@app.post("/users", response_model=User)
-def create_user(user: UserCreate, db: Session = Depends(get_db)):
+@app.post("/register", response_model=User)
+def create_user(user: UserCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == user.username).first()
     if existing_user:
         raise HTTPException(
@@ -88,23 +113,44 @@ def create_user(user: UserCreate, db: Session = Depends(get_db)):
         )
 
     hashed_password = hash_password(user.password)
-    user = User(
+    validation_code = generate_validation_code()
+    new_user = User(
         username=user.username,
         email=user.email,
         full_name=user.full_name,
+        validation_code=validation_code,
+        status=user.status,
         role=user.role,
         hashed_password=hashed_password,
     )
-    db.add(user)
+    db.add(new_user)
     db.commit()
-    db.refresh(user)
+    db.refresh(new_user)
+
+    background_tasks.add_task(send_validation_code_event, user.email, validation_code, new_user.id)
+
     return JSONResponse(content=user.dict(), status_code=201)
 
+@app.post("/validate")
+def validate_code(email: str, code: str, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.email == email).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.validation_code != code:
+        raise HTTPException(status_code=400, detail="Invalid code")
+
+    user.status = "active"
+    user.validation_code = None
+    db.commit()
+    db.refresh(user)
+
+    return {"message": "Account validated successfully"}
+    
 
 @app.post("/login")
 def login(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
-    if not db_user or not verify_password(user.password, db_user.hashed_password):
+    if not db_user or not verify_password(user.password, db_user.hashed_password) or db_user.status == "pending":
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
     access_token = create_access_token(data={"sub": db_user.username, "id": db_user.id})
