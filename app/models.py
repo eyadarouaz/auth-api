@@ -4,9 +4,11 @@ from typing import Optional
 from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
 
+
 class Status(str, Enum):
     pending = "pending"
     active = "active"
+
 
 class Role(str, Enum):
     admin = "admin"

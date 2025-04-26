@@ -1,4 +1,5 @@
 import os
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,7 +9,6 @@ from app.database import get_db
 from app.main import app
 from app.models import User
 from tests.factories import UserFactory
-from unittest.mock import patch
 
 BASE_URL = "/users"
 DATABASE_URI = os.getenv(
@@ -66,10 +66,13 @@ def setup_db(db_session):
     db_session.commit()
     yield db_session
 
+
 @pytest.fixture(autouse=True)
 def mock_asb_service():
-    with patch("app.main.send_validation_code_event") as mock_send_validation_code_event:
-        mock_send_validation_code_event.return_value = None 
+    with patch(
+        "app.main.send_validation_code_event"
+    ) as mock_send_validation_code_event:
+        mock_send_validation_code_event.return_value = None
         yield mock_send_validation_code_event
 
 
@@ -349,7 +352,7 @@ def test_login_user_pending_account(db_session, setup_and_teardown):
 
 def test_read_current_user(db_session, setup_and_teardown):
     """It should not log in a user with incorrect username"""
-    user, token = _login_user(db_session) 
+    user, token = _login_user(db_session)
 
     headers = {"Authorization": f"Bearer {token}"}
     response = client.get("/me", headers=headers)

@@ -1,23 +1,21 @@
 import logging
+import secrets
+import string
 from typing import List
 
-from fastapi import Depends, FastAPI, HTTPException, BackgroundTasks
+from azure.servicebus import ServiceBusMessage
+from azure.servicebus.aio import ServiceBusClient
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from sqlmodel import Session, SQLModel, select
 
+from app.config import settings
 from app.database import engine, get_db
 from app.logging_config import setup_logging
 from app.models import User, UserCreate
 from app.utils import create_access_token, hash_password, verify_password, verify_token
-from app.config import settings
-
-from azure.servicebus.aio import ServiceBusClient
-from azure.servicebus import ServiceBusMessage
-
-import secrets
-import string
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
@@ -48,9 +46,11 @@ def get_current_user(
             detail="An unexpected error occurred",
         )
 
+
 def generate_validation_code(length: int = 8) -> str:
     characters = string.ascii_uppercase + string.digits
-    return ''.join(secrets.choice(characters) for _ in range(length))
+    return "".join(secrets.choice(characters) for _ in range(length))
+
 
 async def send_validation_code_event(email: str, code: str, user_id: int):
     payload = {
@@ -60,12 +60,15 @@ async def send_validation_code_event(email: str, code: str, user_id: int):
         "userId": str(user_id),
     }
 
-    async with ServiceBusClient.from_connection_string(settings.CONNECTION_STRING) as client:
+    async with ServiceBusClient.from_connection_string(
+        settings.CONNECTION_STRING
+    ) as client:
         sender = client.get_queue_sender(queue_name=settings.QUEUE_NAME)
         async with sender:
             message = ServiceBusMessage(str(payload))
             await sender.send_messages(message)
             logger.info(f"Sent validation code event for {email}")
+
 
 @app.on_event("startup")
 def on_startup():
@@ -104,7 +107,9 @@ def read_user(
 
 
 @app.post("/register", response_model=User)
-def create_user(user: UserCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def create_user(
+    user: UserCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
+):
     existing_user = db.query(User).filter(User.username == user.username).first()
     if existing_user:
         raise HTTPException(
@@ -127,30 +132,37 @@ def create_user(user: UserCreate, background_tasks: BackgroundTasks, db: Session
     db.commit()
     db.refresh(new_user)
 
-    background_tasks.add_task(send_validation_code_event, user.email, validation_code, new_user.id)
+    background_tasks.add_task(
+        send_validation_code_event, user.email, validation_code, new_user.id
+    )
 
     return JSONResponse(content=user.dict(), status_code=201)
+
 
 @app.post("/validate")
 def validate_code(email: str, code: str, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.email == email).first()
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
-    if user.validation_code != code:
+    if db_user.validation_code != code:
         raise HTTPException(status_code=400, detail="Invalid code")
 
-    user.status = "active"
-    user.validation_code = None
+    db_user.status = "active"
+    db_user.validation_code = None
     db.commit()
-    db.refresh(user)
+    db.refresh(db_user)
 
     return {"message": "Account validated successfully"}
-    
+
 
 @app.post("/login")
 def login(user: UserCreate, db: Session = Depends(get_db)):
     db_user = db.query(User).filter(User.username == user.username).first()
-    if not db_user or not verify_password(user.password, db_user.hashed_password) or db_user.status == "pending":
+    if (
+        not db_user
+        or not verify_password(user.password, db_user.hashed_password)
+        or db_user.status == "pending"
+    ):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
 
     access_token = create_access_token(data={"sub": db_user.username, "id": db_user.id})
