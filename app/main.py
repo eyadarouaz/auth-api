@@ -1,3 +1,4 @@
+import json
 import logging
 import secrets
 import string
@@ -60,12 +61,14 @@ async def send_validation_code_event(email: str, code: str, user_id: int):
         "userId": str(user_id),
     }
 
+    payload_json = json.dumps(payload)
+
     async with ServiceBusClient.from_connection_string(
         settings.CONNECTION_STRING
     ) as client:
         sender = client.get_queue_sender(queue_name=settings.QUEUE_NAME)
         async with sender:
-            message = ServiceBusMessage(str(payload))
+            message = ServiceBusMessage(str(payload_json))
             await sender.send_messages(message)
             logger.info(f"Sent validation code event for {email}")
 
