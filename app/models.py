@@ -1,9 +1,13 @@
 from enum import Enum
 from typing import Optional
+from datetime import datetime, timedelta
 
 from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
 
+class Action(str, Enum):
+    register = "register"
+    reset_password = "reset_password"
 
 class Status(str, Enum):
     pending = "pending"
@@ -21,6 +25,7 @@ class User(SQLModel, table=True):
     email: EmailStr
     full_name: Optional[str] = None
     validation_code: Optional[str] = None
+    code_expires_at: Optional[datetime] = None
     status: Status = Field(default=Status.pending)
     role: Role = Field(default=Role.user)
     hashed_password: str
@@ -31,6 +36,7 @@ class UserCreate(SQLModel):
     email: EmailStr
     full_name: Optional[str] = None
     validation_code: Optional[str] = None
+    code_expires_at: Optional[datetime] = None
     status: Optional[Status] = Status.pending
     password: str
     role: Optional[Role] = Role.user
