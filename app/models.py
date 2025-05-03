@@ -1,13 +1,15 @@
+from datetime import datetime
 from enum import Enum
 from typing import Optional
-from datetime import datetime, timedelta
 
 from pydantic import EmailStr
 from sqlmodel import Field, SQLModel
 
+
 class Action(str, Enum):
     register = "register"
     reset_password = "reset_password"
+
 
 class Status(str, Enum):
     pending = "pending"
