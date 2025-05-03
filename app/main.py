@@ -2,21 +2,20 @@ import json
 import logging
 import secrets
 import string
+from datetime import datetime, timedelta
 from typing import List
 
 from azure.servicebus import ServiceBusMessage
 from azure.servicebus.aio import ServiceBusClient
 from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
-from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from sqlmodel import Session, SQLModel, select
-from datetime import datetime, timedelta
 
 from app.config import settings
 from app.database import engine, get_db
 from app.logging_config import setup_logging
-from app.models import User, UserCreate, Action
+from app.models import Action, User, UserCreate
 from app.utils import create_access_token, hash_password, verify_password, verify_token
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -53,6 +52,7 @@ def generate_validation_code(length: int = 8) -> str:
     characters = string.ascii_uppercase + string.digits
     return "".join(secrets.choice(characters) for _ in range(length))
 
+
 def validate_code(user: User, code: str):
     if user.validation_code != code:
         raise HTTPException(status_code=400, detail="Invalid code")
@@ -60,13 +60,15 @@ def validate_code(user: User, code: str):
         raise HTTPException(status_code=400, detail="Code has expired")
 
 
-async def send_validation_code_event(email: str, code: str, user_id: int, action: Action):
+async def send_validation_code_event(
+    email: str, code: str, user_id: int, action: Action
+):
     payload = {
         "eventType": "SEND_VALIDATION_CODE",
         "email": email,
         "code": code,
         "userId": str(user_id),
-        "action": action
+        "action": action,
     }
 
     payload_json = json.dumps(payload)
@@ -146,10 +148,15 @@ def create_user(
     db.refresh(new_user)
 
     background_tasks.add_task(
-        send_validation_code_event, user.email, validation_code, new_user.id, Action.register
+        send_validation_code_event,
+        user.email,
+        validation_code,
+        new_user.id,
+        Action.register,
     )
 
     return new_user
+
 
 @app.post("/reset-pwd")
 async def request_password_reset(email: str, db: Session = Depends(get_db)):
@@ -164,12 +171,17 @@ async def request_password_reset(email: str, db: Session = Depends(get_db)):
     user.code_expires_at = expiry_time
     db.commit()
 
-    await send_validation_code_event(email, validation_code, user.id, Action.reset_password)
+    await send_validation_code_event(
+        email, validation_code, user.id, Action.reset_password
+    )
 
     return {"message": "Verification code sent"}
 
+
 @app.post("/change-pwd")
-async def change_password(email: str, new_password: str,code: str, db: Session = Depends(get_db)):
+async def change_password(
+    email: str, new_password: str, code: str, db: Session = Depends(get_db)
+):
     user = db.query(User).filter_by(email=email).first()
 
     if not user:
@@ -185,6 +197,7 @@ async def change_password(email: str, new_password: str,code: str, db: Session =
     db.commit()
 
     return {"message": "Password successfully changed"}
+
 
 @app.post("/validate")
 def validate_account(email: str, code: str, db: Session = Depends(get_db)):
