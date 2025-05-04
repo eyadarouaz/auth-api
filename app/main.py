@@ -7,7 +7,7 @@ from typing import List
 
 from azure.servicebus import ServiceBusMessage
 from azure.servicebus.aio import ServiceBusClient
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from sqlmodel import Session, SQLModel, select
@@ -119,7 +119,7 @@ def read_user(
     return user
 
 
-@app.post("/register", response_model=User)
+@app.post("/register", response_model=User, status_code=status.HTTP_201_CREATED)
 def create_user(
     user: UserCreate, background_tasks: BackgroundTasks, db: Session = Depends(get_db)
 ):
@@ -175,7 +175,7 @@ async def request_password_reset(email: str, db: Session = Depends(get_db)):
         email, validation_code, user.id, Action.reset_password
     )
 
-    return {"message": "Verification code sent"}
+    return {"message": "Verification code sent", "code": user.validation_code}
 
 
 @app.post("/change-pwd")
@@ -212,7 +212,7 @@ def validate_account(email: str, code: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
 
-    return {"message": "Account validated successfully"}
+    return {"message": "Account validated successfully", "status": user.status}
 
 
 @app.post("/login")
