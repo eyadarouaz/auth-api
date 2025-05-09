@@ -88,9 +88,11 @@ def on_startup():
     SQLModel.metadata.create_all(bind=engine)
     logger.info("Tables created (if not already existing)")
 
+
 @app.get("/debug/headers")
 async def debug_headers(request: Request):
     return dict(request.headers)
+
 
 @app.get("/")
 def read_root():
