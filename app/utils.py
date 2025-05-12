@@ -1,10 +1,11 @@
 import os
 from datetime import datetime, timedelta
 from typing import Optional
-from config import settings
+
+from app.config import settings
 from fastapi import HTTPException, status
+from jose import JWTError, jwt
 from passlib.context import CryptContext
-from jose import jwt, JWTError
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
@@ -30,22 +31,26 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode = data.copy()
     to_encode.update({"exp": expire})
 
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM, headers={"kid": "kong-client-id"})
+    encoded_jwt = jwt.encode(
+        to_encode, SECRET_KEY, algorithm=ALGORITHM, headers={"kid": "kong-client-id"}
+    )
     return encoded_jwt
 
 
 def verify_token(token: str) -> dict:
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(
+            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         user_id: str = payload.get("id")
         if user_id is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token missing user ID",
             )
-            
+
         return payload
-        
+
     except JWTError as e:
         print(f"JWT verification error: {e}")
         raise HTTPException(

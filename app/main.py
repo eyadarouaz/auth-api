@@ -7,7 +7,7 @@ from typing import List
 
 from azure.servicebus import ServiceBusMessage
 from azure.servicebus.aio import ServiceBusClient
-from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, status, Request
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from passlib.context import CryptContext
 from sqlmodel import Session, SQLModel, select
