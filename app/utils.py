@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 from config import settings
-
+from fastapi import HTTPException, status
 import jwt
 from passlib.context import CryptContext
 
@@ -43,7 +43,9 @@ def verify_token(token: str) -> dict:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token missing user ID",
             )
+            
         return payload
+        
     except JWTError as e:
         print(f"JWT verification error: {e}")
         raise HTTPException(
