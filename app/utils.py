@@ -8,7 +8,6 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 SECRET_KEY = os.getenv("SECRET_KEY")
-ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -32,7 +31,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode.update({"exp": expire})
 
     encoded_jwt = jwt.encode(
-        to_encode, SECRET_KEY, algorithm=ALGORITHM, headers={"kid": "kong-client-id"}
+        to_encode, SECRET_KEY, algorithm="HS256", headers={"kid": "kong-client-id"}
     )
     return encoded_jwt
 
@@ -40,7 +39,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def verify_token(token: str) -> dict:
     try:
         payload = jwt.decode(
-            token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+            token, settings.SECRET_KEY, algorithms="HS256"
         )
         user_id: str = payload.get("id")
         if user_id is None:
