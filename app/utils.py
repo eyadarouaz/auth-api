@@ -3,7 +3,6 @@ from datetime import datetime, timedelta
 from typing import Optional
 from config import settings
 from fastapi import HTTPException, status
-import jwt
 from passlib.context import CryptContext
 from jose import jwt, JWTError
 
