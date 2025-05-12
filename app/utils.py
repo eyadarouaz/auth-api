@@ -5,6 +5,7 @@ from config import settings
 from fastapi import HTTPException, status
 import jwt
 from passlib.context import CryptContext
+from jose import jwt, JWTError
 
 SECRET_KEY = os.getenv("SECRET_KEY")
 ALGORITHM = os.getenv("ALGORITHM")
